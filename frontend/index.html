@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSEGRADE • REDBULL HACKATHON</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400&amp;family=Space+Grotesk:wght@500&amp;family=IBM+Plex+Mono:wght@400&amp;display=swap');
+        
+        :root {
+            --accent-red: 239 68 68;
+        }
+
+        .tail-text {
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .neon-red {
+            text-shadow: 
+                0 0 10px rgb(239 68 68),
+                0 0 20px rgb(239 68 68),
+                0 0 40px rgb(190 18 18);
+        }
+
+        .range-thumb {
+            accent-color: rgb(239 68 68);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, #18181b, #27272a);
+            box-shadow: 
+                0 10px 15px -3px rgb(0 0 0),
+                0 0 0 1px rgb(63 63 70);
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            letter-spacing: -.02em;
+        }
+
+        .pulse-button {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pulse-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 40%;
+            height: 300%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,0.3),
+                transparent
+            );
+            transform: skewX(-25deg);
+            animation: shimmer 4s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-150%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .scanline {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 40%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(248, 113, 113, 0.4),
+                transparent
+            );
+            animation: scan 3s linear infinite;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .predicting .scanline {
+            opacity: 1;
+        }
+
+        @keyframes scan {
+            0% { left: -40%; }
+            100% { left: 300%; }
+        }
+
+        .result-pass {
+            animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .led-dot {
+            animation: ledPulse 2s ease-in-out infinite;
+        }
+
+        .input-value {
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgb(251 113 133);
+        }
+
+        .bg-grid {
+            background-image: 
+                linear-gradient(to right, #27272a 1px, transparent 1px),
+                linear-gradient(to bottom, #27272a 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+    <!-- NAVBAR -->
+    <nav class="border-b border-zinc-900 bg-zinc-950/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-50">
+        <div class="max-w-screen-2xl mx-auto">
+            <div class="px-8 py-5 flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex items-center gap-x-3">
+                    <div class="w-9 h-9 bg-red-500 rounded-2xl flex items-center justify-center shadow-inner shadow-red-500/50">
+                        <span class="text-white text-xs font-black tracking-tighter text-[18px] leading-none pt-0.5">R</span>
+                    </div>
+                    <div>
+                        <span onclick="resetApp()" 
+                              class="tail-text text-3xl font-semibold tracking-tighter cursor-pointer neon-red">
+                            PULSE
+                        </span>
+                        <span class="tail-text text-3xl font-semibold tracking-tighter text-red-500">GRADE</span>
+                    </div>
+                </div>
+
+                <!-- Hackathon badge -->
+                <div class="flex items-center gap-x-2 bg-zinc-900 text-xs font-mono border border-red-500/30 text-red-400 px-3 py-1.5 rounded-3xl">
+                    <div class="w-2 h-2 bg-red-500 rounded-full led-dot"></div>
+                    <span class="text-[10px] font-semibold tracking-[1px]">REDBULL HACK 2025</span>
+                </div>
+
+                <div class="flex items-center gap-x-8 text-sm">
+                    <a href="#" 
+                       onclick="showTab(0)" 
+                       class="tab-link flex items-center gap-x-1.5 text-zinc-400 hover:text-white transition-colors active-tab">
+                        <i class="fa-solid fa-chart-line text-xs"></i>
+                        <span>PREDICT</span>
+                    </a>
+                    <a href="#" 
+                       onclick="showTab(1)" 
+                       class="tab-link flex items-center gap-x-1.5 text-zinc-400 hover:text-white transition-colors">
+                        <i class="fa-solid fa-flask text-xs"></i>
+                        <span>HOW IT WORKS</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="h-20"></div>
+
+    <div class="max-w-screen-2xl mx-auto px-8 pb-12">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- INPUTS COLUMN -->
+            <div class="lg:col-span-7">
+                <div class="glass-card rounded-3xl p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <span class="px-3 py-1 bg-red-500 text-white text-[10px] font-mono text-xs rounded-2xl text-center inline-flex items-center gap-x-1">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                </span>
+                                LIVE
+                            </span>
+                        </div>
+                        <h1 class="tail-text text-4xl font-semibold tracking-tighter">Student Performance<br>Predictor</h1>
+                    </div>
+
+                    <div class="space-y-8">
+                        
+                        <!-- STUDY HOURS -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-x-3">
+                                    <i class="fa-solid fa-book text-red-400 text-lg"></i>
+                                    <div>
+                                        <p class="font-semibold text-sm">Study Hours per Week</p>
+                                        <p class="metric-label text-zinc-500">How much do you grind?</p>
+                                    </div>
+                                </div>
+                                <div id="study-val" 
+                                     class="input-value">28</div>
+                            </div>
+                            <input type="range" 
+                                   id="study-slider"
+                                   min="0" 
+                                   max="60" 
+                                   value="28"
+                                   oninput="updateStudy(this.value)"
+                                   class="range-thumb w-full">
+                            <div class="flex justify-between text-[10px] text-zinc-500 mt-1 font-mono">
+                                <div>0h</div>
+                                <div>60h</div>
+                            </div>
+                        </div>
+
+                        <!-- ATTENDANCE -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-x-3">
+                                    <i class="fa-solid fa-user-check text-red-400 text-lg"></i>
+                                    <div>
+                                        <p class="font-semibold text-sm">Attendance Rate</p>
+                                        <p class="metric-label text-zinc-500">Class presence %</p>
+                                    </div>
+                                </div>
+                                <div id="attendance-val" 
+                                     class="input-value">82</div>
+                            </div>
+                            <input type="range" 
+                                   id="attendance-slider"
+                                   min="0" 
+                                   max="100" 
+                                   value="82"
+                                   oninput="updateAttendance(this.value)"
+                                   class="range-thumb w-full">
+                            <div class="flex justify-between text-[10px] text-zinc-500 mt-1 font-mono">
+                                <div>0%</div>
+                                <div>100%</div>
+                            </div>
+                        </div>
+
+                        <!-- PAST SCORES -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-x-3">
+                                    <i class="fa-solid fa-chart-bar text-red-400 text-lg"></i>
+                                    <div>
+                                        <p class="font-semibold text-sm">Past Exam Scores</p>
+                                        <p class="metric-label text-zinc-500">Average previous %</p>
+                                    </div>
+                                </div>
+                                <div id="past-val" 
+                                     class="input-value">76</div>
+                            </div>
+                            <input type="range" 
+                                   id="past-slider"
+                                   min="0" 
+                                   max="100" 
+                                   value="76"
+                                   oninput="updatePast(this.value)"
+                                   class="range-thumb w-full">
+                            <div class="flex justify-between text-[10px] text-zinc-500 mt-1 font-mono">
+                                <div>0</div>
+                                <div>100</div>
+                            </div>
+                        </div>
+
+                        <!-- PARENTAL LEVEL -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-x-3">
+                                    <i class="fa-solid fa-graduation-cap text-red-400 text-lg"></i>
+                                    <div>
+                                        <p class="font-semibold text-sm">Parental Education Level</p>
+                                        <p class="metric-label text-zinc-500">1 = Low • 5 = Advanced</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-x-2">
+                                    <div id="parental-val" 
+                                         class="input-value">3</div>
+                                    <div id="parental-label" 
+                                         class="text-xs font-mono bg-zinc-900 text-zinc-400 px-2.5 py-1 rounded-xl text-[10px]">BACHELOR'S</div>
+                                </div>
+                            </div>
+                            <input type="range" 
+                                   id="parental-slider"
+                                   min="1" 
+                                   max="5" 
+                                   step="1"
+                                   value="3"
+                                   oninput="updateParental(this.value)"
+                                   class="range-thumb w-full">
+                            <div class="flex justify-between text-[10px] text-zinc-500 mt-1 font-mono">
+                                <div>1</div>
+                                <div>5</div>
+                            </div>
+                        </div>
+
+                        <!-- TOGGLES -->
+                        <div class="grid grid-cols-2 gap-6">
+                            <!-- Internet -->
+                            <div class="glass-card border border-zinc-800 rounded-3xl p-5">
+                                <label class="flex items-center gap-x-3 cursor-pointer">
+                                    <input type="checkbox" 
+                                           id="internet-toggle"
+                                           checked
+                                           class="peer sr-only">
+                                    <div class="w-9 h-5 bg-zinc-700 rounded-full peer-checked:bg-emerald-400 transition-colors relative">
+                                        <div class="absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full shadow transition-all peer-checked:translate-x-4"></div>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium">Internet Access</span>
+                                        <span class="block text-xs text-zinc-500">At home</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Extracurricular -->
+                            <div class="glass-card border border-zinc-800 rounded-3xl p-5">
+                                <label class="flex items-center gap-x-3 cursor-pointer">
+                                    <input type="checkbox" 
+                                           id="extra-toggle"
+                                           class="peer sr-only">
+                                    <div class="w-9 h-5 bg-zinc-700 rounded-full peer-checked:bg-emerald-400 transition-colors relative">
+                                        <div class="absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full shadow transition-all peer-checked:translate-x-4"></div>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium">Extracurriculars</span>
+                                        <span class="block text-xs text-zinc-500">Active clubs</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PREDICT BUTTON -->
+                    <button onclick="triggerPrediction()" 
+                            id="predict-btn"
+                            class="pulse-button mt-10 w-full h-14 bg-red-500 hover:bg-red-600 transition-all rounded-3xl text-white font-semibold flex items-center justify-center gap-x-3 shadow-xl shadow-red-500/40 text-base active:scale-[0.97]">
+                        <i id="btn-icon" class="fa-solid fa-bolt"></i>
+                        <span id="btn-text">RUN PREDICTION • 1000 BEATS</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RESULT COLUMN -->
+            <div class="lg:col-span-5">
+                <div id="result-card" 
+                     class="glass-card rounded-3xl p-8 h-full min-h-[480px] flex flex-col">
+                    
+                    <!-- EMPTY STATE -->
+                    <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-center">
+                        <div class="w-14 h-14 rounded-2xl bg-zinc-900 flex items-center justify-center mb-6 border border-red-500/20">
+                            <span class="text-3xl">⚡</span>
+                        </div>
+                        <h3 class="font-semibold text-xl mb-1">Your future score awaits</h3>
+                        <p class="text-zinc-400 max-w-[210px] text-sm">
+                            Tweak the inputs. Hit the button. Watch the magic happen.
+                        </p>
+                        
+                        <div class="mt-auto pt-12 flex items-center gap-x-2 text-[10px] font-mono text-zinc-500">
+                            <div class="h-px w-6 bg-zinc-700"></div>
+                            <span>POWERED BY FASTAPI + ML</span>
+                            <div class="h-px w-6 bg-zinc-700"></div>
+                        </div>
+                    </div>
+
+                    <!-- RESULT CONTENT -->
+                    <div id="result-content" class="hidden flex-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER BAR -->
+    <div class="bg-zinc-950 border-t border-zinc-900 py-6">
+        <div class="max-w-screen-2xl mx-auto px-8 text-xs flex flex-wrap items-center justify-between text-zinc-500 font-mono">
+            <div>Mock frontend • Real FastAPI backend ready</div>
+            <div class="flex items-center gap-x-5 text-[10px]">
+                <span class="flex items-center gap-x-1">
+                    <span class="text-emerald-400">●</span> 
+                    PASS
+                </span>
+                <span class="flex items-center gap-x-1">
+                    <span class="text-rose-400">●</span> 
+                    FAIL
+                </span>
+                <button onclick="resetApp()" 
+                        class="underline hover:text-zinc-300 transition-colors">
+                    RESET ALL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="confetti-canvas" 
+            class="fixed inset-0 pointer-events-none z-[9999] hidden"></canvas>
+
+    <script>
+        // Tailwind already loaded via CDN
+        
+        let currentInputs = {
+            study: 28,
+            attendance: 82,
+            past: 76,
+            parental: 3,
+            internet: true,
+            extra: true
+        }
+        
+        const parentalLabels = {
+            1: "PRIMARY",
+            2: "SECONDARY",
+            3: "BACHELOR",
+            4: "MASTER",
+            5: "ADVANCED"
+        }
+        
+        // DOM elements
+        const studySlider = document.getElementById("study-slider")
+        const studyVal = document.getElementById("study-val")
+        
+        const attendanceSlider = document.getElementById("attendance-slider")
+        const attendanceVal = document.getElementById("attendance-val")
+        
+        const pastSlider = document.getElementById("past-slider")
+        const pastVal = document.getElementById("past-val")
+        
+        const parentalSlider = document.getElementById("parental-slider")
+        const parentalVal = document.getElementById("parental-val")
+        const parentalLabel = document.getElementById("parental-label")
+        
+        const internetToggle = document.getElementById("internet-toggle")
+        const extraToggle = document.getElementById("extra-toggle")
+        
+        const predictBtn = document.getElementById("predict-btn")
+        const btnText = document.getElementById("btn-text")
+        const btnIcon = document.getElementById("btn-icon")
+        
+        const emptyState = document.getElementById("empty-state")
+        const resultContent = document.getElementById("result-content")
+        
+        // Update functions
+        function updateStudy(val) {
+            currentInputs.study = parseFloat(val)
+            studyVal.textContent = Math.round(currentInputs.study)
+        }
+        
+        function updateAttendance(val) {
+            currentInputs.attendance = parseFloat(val)
+            attendanceVal.textContent = Math.round(currentInputs.attendance)
+        }
+        
+        function updatePast(val) {
+            currentInputs.past = parseFloat(val)
+            pastVal.textContent = Math.round(currentInputs.past)
+        }
+        
+        function updateParental(val) {
+            currentInputs.parental = parseInt(val)
+            parentalVal.textContent = currentInputs.parental
+            parentalLabel.textContent = parentalLabels[currentInputs.parental]
+        }
+        
+        // Listen to toggles
+        function setupToggles() {
+            // Internet starts checked
+            internetToggle.checked = currentInputs.internet
+            
+            internetToggle.addEventListener("change", () => {
+                currentInputs.internet = internetToggle.checked
+            })
+            
+            extraToggle.addEventListener("change", () => {
+                currentInputs.extra = extraToggle.checked
+            })
+        }
+        
+        // Score calculation (mock ML model)
+        function calculateScore() {
+            const normStudy = Math.min(currentInputs.study / 50, 1)
+            const normAttendance = currentInputs.attendance / 100
+            const normPast = currentInputs.past / 100
+            const normParental = (currentInputs.parental - 1) / 4
+            const normInternet = currentInputs.internet ? 1 : 0
+            const normExtra = currentInputs.extra ? 1 : 0
+            
+            // Weighted score out of 100
+            let score = 
+                (normStudy * 26) +
+                (normAttendance * 28) +
+                (normPast * 30) +
+                (normParental * 8) +
+                (normInternet * 4) +
+                (normExtra * 4)
+            
+            // Add some randomness for demo realism (±8)
+            score += (Math.random() * 8 - 4)
+            score = Math.max(22, Math.min(97, score))
+            
+            return score
+        }
+        
+        // Simple confetti using canvas
+        let confettiCanvas
+        let confettiCtx
+        
+        function initConfettiCanvas() {
+            confettiCanvas = document.getElementById("confetti-canvas")
+            confettiCtx = confettiCanvas.getContext("2d")
+            resizeCanvas()
+            window.addEventListener("resize", resizeCanvas)
+        }
+        
+        function resizeCanvas() {
+            confettiCanvas.width = window.innerWidth
+            confettiCanvas.height = window.innerHeight
+        }
+        
+        function launchConfetti() {
+            confettiCanvas.classList.remove("hidden")
+            const colors = ["#f43f5e", "#22c55e", "#eab308", "#06b67f", "#a855f7"]
+            const particles = []
+            
+            for (let i = 0; i < 180; i++) {
+                particles.push({
+                    x: Math.random() * confettiCanvas.width,
+                    y: Math.random() * confettiCanvas.height / 2 - 100,
+                    size: Math.random() * 9 + 5,
+                    speedY: Math.random() * 4.5 + 3.5,
+                    speedX: Math.random() * 1.8 - 0.9,
+                    rotation: Math.random() * 360,
+                    rotSpeed: Math.random() * 8 - 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 220 + Math.random() * 80,
+                    opacity: 1,
+                    shape: Math.random() > 0.6 ? "circle" : "rect"
+                })
+            }
+            
+            let frame = 0
+            const maxFrames = 180
+            
+            function animateConfetti() {
+                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height)
+                
+                let stillAlive = false
+                
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i]
+                    p.y += p.speedY
+                    p.x += p.speedX
+                    p.rotation += p.rotSpeed
+                    p.speedY += 0.085   // gravity
+                    p.life--
+                    p.opacity = Math.max(0, p.life / 180)
+                    
+                    if (p.life > 0) stillAlive = true
+                    
+                    confettiCtx.save()
+                    confettiCtx.globalAlpha = p.opacity
+                    confettiCtx.translate(p.x, p.y)
+                    confettiCtx.rotate(p.rotation * Math.PI / 180)
+                    
+                    confettiCtx.fillStyle = p.color
+                    
+                    if (p.shape === "circle") {
+                        confettiCtx.beginPath()
+                        confettiCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2)
+                        confettiCtx.fill()
+                    } else {
+                        confettiCtx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size / 1.5)
+                    }
+                    
+                    confettiCtx.restore()
+                }
+                
+                frame++
+                if (stillAlive && frame < maxFrames) {
+                    requestAnimationFrame(animateConfetti)
+                } else {
+                    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height)
+                    confettiCanvas.classList.add("hidden")
+                }
+            }
+            
+            animateConfetti()
+        }
+        
+        // Render result
+        function renderResult(score) {
+            const isPass = score >= 62
+            const roundedScore = Math.round(score)
+            
+            emptyState.classList.add("hidden")
+            resultContent.classList.remove("hidden")
+            resultContent.classList.add("result-pass")
+            
+            let html = `
+                <div class="flex flex-col h-full">
+                    <!-- Outcome header -->
+                    <div class="flex justify-center">
+                        <div class="inline-flex items-center gap-x-2 bg-zinc-900 text-xs font-mono border ${isPass 
+                            ? 'border-emerald-400 text-emerald-400' 
+                            : 'border-rose-400 text-rose-400'} px-5 py-2 rounded-3xl">
+                            <span class="relative flex h-3 w-3">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${isPass 
+                                    ? 'bg-emerald-400' 
+                                    : 'bg-rose-400'} opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 ${isPass 
+                                    ? 'bg-emerald-400' 
+                                    : 'bg-rose-400'}"></span>
+                            </span>
+                            ${isPass ? 'PREDICTION: PASS' : 'PREDICTION: FAIL'}
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 flex items-center justify-center my-6">
+                        <div class="text-center">
+                            <div class="${isPass 
+                                ? 'text-emerald-400' 
+                                : 'text-rose-400'} text-[3.8rem] font-black tail-text tracking-[-4px] leading-none">
+                                ${isPass ? 'PASS' : 'FAIL'}
+                            </div>
+                            <div class="text-xs font-medium text-zinc-400 mt-1">OUTCOME</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress bar -->
+                    <div>
+                        <div class="flex justify-between items-baseline text-xs mb-3">
+                            <span class="font-medium text-zinc-400">SUCCESS POTENTIAL</span>
+                            <span class="font-mono text-base font-semibold ${isPass 
+                                ? 'text-emerald-400' 
+                                : 'text-rose-400'}">${roundedScore}%</span>
+                        </div>
+                        <div class="h-2.5 bg-zinc-800 rounded-3xl overflow-hidden">
+                            <div class="h-full transition-all duration-1000 rounded-3xl ${isPass 
+                                ? 'bg-gradient-to-r from-emerald-400 to-teal-400' 
+                                : 'bg-gradient-to-r from-rose-400 to-red-400'}" 
+                                 style="width: ${roundedScore}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Insight -->
+                    <div class="mt-10 text-xs leading-relaxed text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+                        ${isPass 
+                            ? `
+                            <span class="text-emerald-400 font-medium">🔥 You're in the top tier!</span><br>
+                            Strong study habits + attendance = success. Keep crushing it.
+                            ` 
+                            : `
+                            <span class="text-rose-400 font-medium">📈 Opportunity detected</span><br>
+                            Boost study hours and attendance to flip the outcome.
+                            `}
+                    </div>
+                    
+                    <button onclick="resetPrediction()" 
+                            class="mt-8 text-xs flex items-center gap-x-2 mx-auto text-zinc-400 hover:text-white transition-colors">
+                        <i class="fa-regular fa-rotate"></i>
+                        <span>TRY DIFFERENT VALUES</span>
+                    </button>
+                </div>
+            `
+            resultContent.innerHTML = html
+            
+            // Trigger confetti only on PASS
+            if (isPass) {
+                setTimeout(() => {
+                    launchConfetti()
+                }, 420)
+            }
+        }
+        
+        // Trigger prediction
+        function triggerPrediction() {
+            // Button loading state
+            const originalText = btnText.innerHTML
+            predictBtn.disabled = true
+            predictBtn.classList.add("predicting")
+            btnIcon.classList.remove("fa-bolt")
+            btnIcon.classList.add("fa-spinner", "animate-spin")
+            btnText.innerHTML = `
+                <span class="font-mono text-xs tracking-widest">CRUNCHING...</span>
+            `
+            // Fake API latency (1500ms)
+            setTimeout(() => {
+                const score = calculateScore()
+                renderResult(score)
+                
+                // Reset button
+                predictBtn.disabled = false
+                predictBtn.classList.remove("predicting")
+                btnIcon.classList.add("fa-bolt")
+                btnIcon.classList.remove("fa-spinner", "animate-spin")
+                btnText.innerHTML = originalText
+            }, 1520)
+        }
+        
+        async function triggerPrediction() {
+    // Button loading state (KEEP UI EFFECTS)
+        const originalText = btnText.innerHTML
+        predictBtn.disabled = true
+        predictBtn.classList.add("predicting")
+        btnIcon.classList.remove("fa-bolt")
+        btnIcon.classList.add("fa-spinner", "animate-spin")
+        btnText.innerHTML = `
+            <span class="font-mono text-xs tracking-widest">CRUNCHING...</span>
+        `
+
+    // 🔥 Payload for FastAPI
+        const payload = {
+            Study_Hours_per_Week: currentInputs.study,
+            Attendance_Rate: currentInputs.attendance,
+            Past_Exam_Scores: currentInputs.past,
+            Parental_Education_Level: currentInputs.parental,
+            Internet_Access_at_Home: currentInputs.internet ? 1 : 0,
+            Extracurricular_Activities: currentInputs.extra ? 1 : 0
+        }
+
+        try {
+            const res = await fetch("http://127.0.0.1:8000/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            })
+
+            const data = await res.json()
+
+        // Your UI expects a score → map Pass/Fail
+            const score = data.result === "Pass" ? 78 : 42
+            renderResult(score)
+
+        } catch (error) {
+            alert("❌ Backend not running. Start FastAPI first.")
+            console.error(error)
+        }
+
+    // Reset button
+        predictBtn.disabled = false
+        predictBtn.classList.remove("predicting")
+        btnIcon.classList.add("fa-bolt")
+        btnIcon.classList.remove("fa-spinner", "animate-spin")
+        btnText.innerHTML = originalText
+    }
+        
+        // Tab system (demo only)
+        function showTab(n) {
+            const tabs = document.querySelectorAll(".tab-link")
+            tabs.forEach((t, index) => {
+                if (index === n) {
+                    t.classList.add("active-tab", "text-white")
+                } else {
+                    t.classList.remove("active-tab", "text-white")
+                }
+            })
+            
+            // Only tab 0 is functional
+            if (n === 1) {
+                const msg = document.createElement("div")
+                msg.style.position = "fixed"
+                msg.style.bottom = "40px"
+                msg.style.left = "50%"
+                msg.style.transform = "translate(-50%, 0)"
+                msg.style.backgroundColor = "#18181b"
+                msg.style.color = "#f43f5e"
+                msg.style.fontSize = "13px"
+                msg.style.fontFamily = "monospace"
+                msg.style.padding = "12px 28px"
+                msg.style.borderRadius = "9999px"
+                msg.style.boxShadow = "0 10px 15px -3px rgb(0 0 0)"
+                msg.style.whiteSpace = "nowrap"
+                msg.style.zIndex = "99999"
+                msg.style.border = "1px solid #4f46e5"
+                msg.innerHTML = `🚀 This would show the model explanation in a real hackathon demo`
+                document.body.appendChild(msg)
+                
+                setTimeout(() => {
+                    msg.style.transitionDuration = "480ms"
+                    msg.style.opacity = "0"
+                    setTimeout(() => msg.remove(), 500)
+                }, 3800)
+            }
+        }
+        
+        // Initialize everything
+        function bootApp() {
+            // Tailwind already active
+            initConfettiCanvas()
+            setupToggles()
+            
+            // Set initial parental label
+            parentalLabel.textContent = parentalLabels[3]
+            
+            // Keyboard support: press P for predict
+            document.addEventListener("keydown", function(e) {
+                if (e.metaKey && e.key === "k") {
+                    e.preventDefault()
+                    if (!predictBtn.disabled) {
+                        triggerPrediction()
+                    }
+                }
+            })
+            
+            // Make range sliders look nicer
+            const ranges = document.querySelectorAll("input[type='range']")
+            ranges.forEach(range => {
+                range.addEventListener("input", () => {
+                    // No extra action needed, already handled in oninput
+                })
+            })
+            
+            console.log('%c✅ PULSEGRADE ready. Built for the ultimate Red Bull Hackathon vibe 🔥', 
+                        'font-family:monospace;font-size:10.5px;color:#f43f5e')
+        }
+        
+        // Boot the app
+        window.onload = bootApp
+    </script>
+</body>
+</html>
